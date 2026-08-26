@@ -437,7 +437,7 @@ The server responds to the public IP it received the request from. That response
 ---
 
 Host requirements 
-
+3. Why is NAT useful in private enterprise networks?
 | Subnet | Required hosts | Host bits (n) | 2^n−2 | Prefix | Block size |
 |---|---|---|---|---|---|
 | Engineering | 60 | 6 | 62 | /26 | 64 |
@@ -447,37 +447,16 @@ Host requirements
 
 ---
 
-### Full addressing table
-
-| Subnet | CIDR | Mask | Network | First Host | Last Host | Broadcast | Gateway | Usable |
-|---|---|---|---|---|---|---|---|---|
-| Engineering | /26 | 255.255.255.192 | 10.20.30.0 | 10.20.30.1 | 10.20.30.62 | 10.20.30.63 | 10.20.30.1 | 62 |
-| Admin | /27 | 255.255.255.224 | 10.20.30.64 | 10.20.30.65 | 10.20.30.94 | 10.20.30.95 | 10.20.30.65 | 30 |
-| Guest Wi-Fi | /27 | 255.255.255.224 | 10.20.30.96 | 10.20.30.97 | 10.20.30.126 | 10.20.30.127 | 10.20.30.97 | 30 |
-| Server | /28 | 255.255.255.240 | 10.20.30.128 | 10.20.30.129 | 10.20.30.142 | 10.20.30.143 | 10.20.30.129 | 14 |
-
-```
-10.20.30.0/24
-┌───────────┬─────────┬───────────┬─────────┬────────────────────────┐
-│ ENG /26   │ ADMIN/27│ GUEST /27 │ SERVER  │      UNALLOCATED       │
-│ .0–.63    │ .64–.95 │ .96–.127  │ /28     │        .144–.255       │
-│ 62 hosts  │ 30 hosts│ 30 hosts  │.128–.143│      (112 addresses)   │
-│           │         │           │14 hosts │                        │
-└───────────┴─────────┴───────────┴─────────┴────────────────────────┘
-```
-
----
-
 ## With Future Growth Reservations 
 
 Every remaining address is pre-assigned to a purpose-built reserved block, nothing left unstructured. 
 
 **Growth blocks added:**
-- Reserved-Engineering-Growth — /27 (32) — headroom to expand Engineering later
-- Spare-Future — /27 (32) — unassigned pool reserved for a brand-new future subnet 
-- Reserved-Admin-Growth — /28 (16)
-- Reserved-GuestWifi-Growth — /28 (16)
-- Reserved-Server-Growth — /28 (16)
+- Reserved-Engineering-Growth - /27 (32) - headroom to expand Engineering later
+- Spare-Future - /27 (32) - unassigned pool reserved for a brand-new future subnet 
+- Reserved-Admin-Growth - /28 (16)
+- Reserved-GuestWifi-Growth - /28 (16)
+- Reserved-Server-Growth - /28 (16)
 
 ### Allocation order (largest to smallest)
 
@@ -559,6 +538,7 @@ I used three verification methods:
 i) block size method (256 - mask value) to determine subnet ranges
 
 ii) division verification to confirm network addresses were at valid boundaries:
+3. Why is NAT useful in private enterprise networks?
 
 A firewall rule will be applied to deny Guest Wi-Fi (10.20.30.96/27) from reaching internal subnets, while permitting its traffic to the WAN/Internet.
 
