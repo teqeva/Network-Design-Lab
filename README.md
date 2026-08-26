@@ -433,7 +433,7 @@ The server responds to the public IP it received the request from. That response
 
 # VLSM Design 
 
-**Assumption stated:** I'm using **20 hosts** for Guest Wi-Fi (a reasonable guest-network size for a small office). 
+**Assumption stated:** I'm using **20 hosts** for Guest Wi-Fi (for a small office). 
 ---
 
 Host requirements 
@@ -446,18 +446,6 @@ Host requirements
 | Server | 12 | 4 | 14 | /28 | 16 |
 
 ---
-
-## VERSION 1: Maximum Address Efficiency (no reservations)
-
-Just the 4 production subnets, packed tightly, leftover space left as one open pool.
-
-| Order | Subnet | Block size | Network | Broadcast |
-|---|---|---|---|---|
-| 1 | Engineering /26 | 64 | .0 | .63 |
-| 2 | Admin /27 | 32 | .64 | .95 |
-| 3 | Guest Wi-Fi /27 | 32 | .96 | .127 |
-| 4 | Server /28 | 16 | .128 | .143 |
-| — | **Unallocated pool** | 112 | .144 | .255 |
 
 ### Full addressing table
 
@@ -480,9 +468,9 @@ Just the 4 production subnets, packed tightly, leftover space left as one open p
 
 ---
 
-## VERSION 2: With Future Growth Reservations 
+## With Future Growth Reservations 
 
-Every remaining address is pre-assigned to a purpose-built reserved block — nothing left unstructured. Reserved blocks are still sized largest-first so every boundary stays valid.
+Every remaining address is pre-assigned to a purpose-built reserved block, nothing left unstructured. 
 
 **Growth blocks added:**
 - Reserved-Engineering-Growth — /27 (32) — headroom to expand Engineering later
@@ -491,7 +479,7 @@ Every remaining address is pre-assigned to a purpose-built reserved block — no
 - Reserved-GuestWifi-Growth — /28 (16)
 - Reserved-Server-Growth — /28 (16)
 
-### Allocation order (largest → smallest, all 9 blocks)
+### Allocation order (largest to smallest)
 
 | Order | Block | Size | Network | Broadcast |
 |---|---|---|---|---|
@@ -505,7 +493,7 @@ Every remaining address is pre-assigned to a purpose-built reserved block — no
 | 8 | Reserved-GuestWifi-Growth /28 | 16 | .224 | .239 |
 | 9 | Reserved-Server-Growth /28 | 16 | .240 | .255 |
 
-**Sum check:** 64+32+32+32+32+16+16+16+16 = **256** — the entire /24 is accounted for, exactly.
+**Sum check:** 64+32+32+32+32+16+16+16+16 = **256**, the entire /24 is accounted for, exactly.
 
 
 ### Full addressing table
@@ -571,6 +559,8 @@ I used three verification methods:
 i) block size method (256 - mask value) to determine subnet ranges
 
 ii) division verification to confirm network addresses were at valid boundaries:
+
+A firewall rule will be applied to deny Guest Wi-Fi (10.20.30.96/27) from reaching internal subnets, while permitting its traffic to the WAN/Internet.
 
 ```text
 128 ÷ 32 = 4 remainder 0
