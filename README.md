@@ -431,15 +431,12 @@ The server responds to the public IP it received the request from. That response
 
 ---
 
-# VLSM Design for BlueOrbit Labs
+# VLSM Design 
 
-# BlueOrbit Labs — VLSM Redesign (Precise)
-
-**Assumption stated up front:** the lab doesn't give a guest Wi-Fi host count, so I'm using **20 hosts** for Guest Wi-Fi (a reasonable guest-network size for a small office). If your actual requirement differs, the block size may change — but the method below still applies.
-
+**Assumption stated:** I'm using **20 hosts** for Guest Wi-Fi (a reasonable guest-network size for a small office). 
 ---
 
-## Step 1 — Host requirements → prefix (VLSM math)
+Host requirements 
 
 | Subnet | Required hosts | Host bits (n) | 2^n−2 | Prefix | Block size |
 |---|---|---|---|---|---|
@@ -450,7 +447,7 @@ The server responds to the public IP it received the request from. That response
 
 ---
 
-## VERSION 1 — Maximum Address Efficiency (no reservations)
+## VERSION 1: Maximum Address Efficiency (no reservations)
 
 Just the 4 production subnets, packed tightly, leftover space left as one open pool.
 
@@ -483,7 +480,7 @@ Just the 4 production subnets, packed tightly, leftover space left as one open p
 
 ---
 
-## VERSION 2 — With Future Growth Reservations 
+## VERSION 2: With Future Growth Reservations 
 
 Every remaining address is pre-assigned to a purpose-built reserved block — nothing left unstructured. Reserved blocks are still sized largest-first so every boundary stays valid.
 
