@@ -1,6 +1,6 @@
 # Networking Design Mini-Capstone
 
-The company has:
+The BlueOrbit Labs company has:
 
 - an Admin team
 - an Engineering team
@@ -433,179 +433,100 @@ The server responds to the public IP it received the request from. That response
 
 # VLSM Design for BlueOrbit Labs
 
-**Designed by:** Eva Muthoni  
-**Role:** Network Engineer, BlueOrbit Labs  
-**Date:** 2026-08-26
+# BlueOrbit Labs — VLSM Redesign (Precise)
+
+**Assumption stated up front:** the lab doesn't give a guest Wi-Fi host count, so I'm using **20 hosts** for Guest Wi-Fi (a reasonable guest-network size for a small office). If your actual requirement differs, the block size may change — but the method below still applies.
 
 ---
 
-## What is VLSM?
+## Step 1 — Host requirements → prefix (VLSM math)
 
-VLSM (Variable Length Subnet Masking) allows each subnet to have a different subnet mask, meaning each subnet is sized **exactly** to its host requirements. This minimizes wasted IP addresses and maximizes efficiency.
-
----
-
-## Why VLSM is Better
-
-| Approach | Subnets | Addresses Used | Wasted | Efficiency |
-|----------|---------|----------------|--------|------------|
-| Fixed-Length (/26) | 4 subnets × 62 = 248 | 97 | 151 | 39% |
-| **VLSM** | Custom sizes | 136 | 39 | **71%** |
-
-**VLSM saves 112 IP addresses** for future growth!
+| Subnet | Required hosts | Host bits (n) | 2^n−2 | Prefix | Block size |
+|---|---|---|---|---|---|
+| Engineering | 60 | 6 | 62 | /26 | 64 |
+| Admin | 25 | 5 | 30 | /27 | 32 |
+| Guest Wi-Fi | 20 | 5 | 30 | /27 | 32 |
+| Server | 12 | 4 | 14 | /28 | 16 |
 
 ---
 
-## VLSM Subnet Planning
+## VERSION 1 — Maximum Address Efficiency (no reservations)
 
-### Parent Network: 10.20.30.0/24
-- **Total Addresses:** 256
-- **Total Usable:** 254
+Just the 4 production subnets, packed tightly, leftover space left as one open pool.
 
-### Allocation Order (Largest to Smallest)
+| Order | Subnet | Block size | Network | Broadcast |
+|---|---|---|---|---|
+| 1 | Engineering /26 | 64 | .0 | .63 |
+| 2 | Admin /27 | 32 | .64 | .95 |
+| 3 | Guest Wi-Fi /27 | 32 | .96 | .127 |
+| 4 | Server /28 | 16 | .128 | .143 |
+| — | **Unallocated pool** | 112 | .144 | .255 |
 
-| Order | Subnet | Required | Host Bits | Borrowed | CIDR | Usable | Block Size | Start Address |
-|-------|--------|----------|-----------|----------|------|--------|------------|---------------|
-| 1 | Engineering | 60 | 6 | 2 | /26 | 62 | 64 | 10.20.30.0 |
-| 2 | Admin | 25 | 5 | 3 | /27 | 30 | 32 | 10.20.30.64 |
-| 3 | Guest Wi-Fi | 20 | 5 | 3 | /27 | 30 | 32 | 10.20.30.96 |
-| 4 | Server | 12 | 4 | 4 | /28 | 14 | 16 | 10.20.30.128 |
-| 5 | Reserved 1 | - | 4 | 4 | /28 | 14 | 16 | 10.20.30.144 |
-| 6 | Reserved 2 | - | 4 | 4 | /28 | 14 | 16 | 10.20.30.160 |
-| 7 | Reserved 3 | - | 4 | 4 | /28 | 14 | 16 | 10.20.30.176 |
-| 8 | Reserved 4 | - | 4 | 4 | /28 | 14 | 16 | 10.20.30.192 |
-| 9 | Reserved 5 | - | 4 | 4 | /28 | 14 | 16 | 10.20.30.208 |
-| 10 | Remaining | - | 6 | 2 | /26 | 62 | 64 | 10.20.30.224 |
+### Full addressing table
 
----
+| Subnet | CIDR | Mask | Network | First Host | Last Host | Broadcast | Gateway | Usable |
+|---|---|---|---|---|---|---|---|---|
+| Engineering | /26 | 255.255.255.192 | 10.20.30.0 | 10.20.30.1 | 10.20.30.62 | 10.20.30.63 | 10.20.30.1 | 62 |
+| Admin | /27 | 255.255.255.224 | 10.20.30.64 | 10.20.30.65 | 10.20.30.94 | 10.20.30.95 | 10.20.30.65 | 30 |
+| Guest Wi-Fi | /27 | 255.255.255.224 | 10.20.30.96 | 10.20.30.97 | 10.20.30.126 | 10.20.30.127 | 10.20.30.97 | 30 |
+| Server | /28 | 255.255.255.240 | 10.20.30.128 | 10.20.30.129 | 10.20.30.142 | 10.20.30.143 | 10.20.30.129 | 14 |
 
-## Detailed VLSM Calculations
-
-### 1. Admin Subnet (/27) - 30 Hosts
 ```
-Required: 25 hosts
-n = 5: 2^5 - 2 = 32 - 2 = 30 usable ✓
-Host bits = 5 | Borrowed bits = 3 | Prefix = /27
-Subnet Mask: 255.255.255.224 | Block Size: 32
-
-Network: 10.20.30.64
-Gateway: 10.20.30.65
-Broadcast: 10.20.30.95
-Host Range: 10.20.30.65 - 10.20.30.94
-
-Verification: 64 ÷ 32 = 2 remainder 0 ✓
-```
-### 2. Engineering Subnet (/26) - 62 Hosts
-```
-Required: 60 hosts
-n = 6: 2^6 - 2 = 64 - 2 = 62 usable ✓
-Host bits = 6 | Borrowed bits = 2 | Prefix = /26
-Subnet Mask: 255.255.255.192 | Block Size: 64
-
-Network: 10.20.30.0
-Gateway: 10.20.30.1
-Broadcast: 10.20.30.63
-Host Range: 10.20.30.1 - 10.20.30.62
-
-Verification: 0 ÷ 64 = 0 remainder 0 ✓
-```
-
-### 3. Guest Wi-Fi Subnet (/27) - 30 Hosts
-```
-Required: 20 hosts
-n = 5: 2^5 - 2 = 32 - 2 = 30 usable ✓
-Host bits = 5 | Borrowed bits = 3 | Prefix = /27
-Subnet Mask: 255.255.255.224 | Block Size: 32
-
-Network: 10.20.30.96
-Gateway: 10.20.30.97
-Broadcast: 10.20.30.127
-Host Range: 10.20.30.97 - 10.20.30.126
-
-Verification: 96 ÷ 32 = 3 remainder 0 ✓
-```
-
-### 4. Server Subnet (/28) - 14 Hosts
-```
-Required: 12 hosts
-n = 4: 2^4 - 2 = 16 - 2 = 14 usable ✓
-Host bits = 4 | Borrowed bits = 4 | Prefix = /28
-Subnet Mask: 255.255.255.240 | Block Size: 16
-
-Network: 10.20.30.128
-Gateway: 10.20.30.129
-Broadcast: 10.20.30.143
-Host Range: 10.20.30.129 - 10.20.30.142
-
-Verification: 128 ÷ 16 = 8 remainder 0 ✓
-```
-
-### 5. Reserved Subnet 1 (/28) - 14 Hosts
-```
-Network: 10.20.30.144
-Broadcast: 10.20.30.159
-Host Range: 10.20.30.145 - 10.20.30.158
-Verification: 144 ÷ 16 = 9 remainder 0 ✓
-```
-
-### 6. Reserved Subnet 2 (/28) - 14 Hosts
-```
-Network: 10.20.30.160
-Broadcast: 10.20.30.175
-Host Range: 10.20.30.161 - 10.20.30.174
-Verification: 160 ÷ 16 = 10 remainder 0 ✓
-```
-
-### 7. Reserved Subnet 3 (/28) - 14 Hosts
-```
-Network: 10.20.30.176
-Broadcast: 10.20.30.191
-Host Range: 10.20.30.177 - 10.20.30.190
-Verification: 176 ÷ 16 = 11 remainder 0 
-```
-
-### 8. Reserved Subnet 4 (/28) - 14 Hosts
-```
-Network: 10.20.30.192
-Broadcast: 10.20.30.207
-Host Range: 10.20.30.193 - 10.20.30.206
-Verification: 192 ÷ 16 = 12 remainder 0 
-```
-
-### 9. Reserved Subnet 5 (/28) - 14 Hosts
-```
-Network: 10.20.30.208
-Broadcast: 10.20.30.223
-Host Range: 10.20.30.209 - 10.20.30.222
-Verification: 208 ÷ 16 = 13 remainder 0 
-```
-
-### 10. Remaining Space (/26) - 62 Hosts
-```
-Network: 10.20.30.224
-Broadcast: 10.20.30.255
-Host Range: 10.20.30.225 - 10.20.30.254
-Verification: 224 ÷ 64 = 3 remainder 32 
+10.20.30.0/24
+┌───────────┬─────────┬───────────┬─────────┬────────────────────────┐
+│ ENG /26   │ ADMIN/27│ GUEST /27 │ SERVER  │      UNALLOCATED       │
+│ .0–.63    │ .64–.95 │ .96–.127  │ /28     │        .144–.255       │
+│ 62 hosts  │ 30 hosts│ 30 hosts  │.128–.143│      (112 addresses)   │
+│           │         │           │14 hosts │                        │
+└───────────┴─────────┴───────────┴─────────┴────────────────────────┘
 ```
 
 ---
 
-## Complete VLSM Addressing Table
+## VERSION 2 — With Future Growth Reservations 
 
-| Subnet Name | CIDR | Subnet Mask | Network Address | Gateway | Broadcast | Usable Hosts |
-|-------------|------|-------------|-----------------|---------|-----------|--------------|
-| Engineering | /26 | 255.255.255.192 | 10.20.30.0 | 10.20.30.1 | 10.20.30.63 | 62 |
-| Admin | /27 | 255.255.255.224 | 10.20.30.64 | 10.20.30.65 | 10.20.30.95 | 30 |
-| Guest Wi-Fi | /27 | 255.255.255.224 | 10.20.30.96 | 10.20.30.97 | 10.20.30.127 | 30 |
-| Server | /28 | 255.255.255.240 | 10.20.30.128 | 10.20.30.129 | 10.20.30.143 | 14 |
-| Reserved 1 | /28 | 255.255.255.240 | 10.20.30.144 | - | 10.20.30.159 | 14 |
-| Reserved 2 | /28 | 255.255.255.240 | 10.20.30.160 | - | 10.20.30.175 | 14 |
-| Reserved 3 | /28 | 255.255.255.240 | 10.20.30.176 | - | 10.20.30.191 | 14 |
-| Reserved 4 | /28 | 255.255.255.240 | 10.20.30.192 | - | 10.20.30.207 | 14 |
-| Reserved 5 | /28 | 255.255.255.240 | 10.20.30.208 | - | 10.20.30.223 | 14 |
-| Remaining | /26 | 255.255.255.192 | 10.20.30.224 | - | 10.20.30.255 | 62 |
+Every remaining address is pre-assigned to a purpose-built reserved block — nothing left unstructured. Reserved blocks are still sized largest-first so every boundary stays valid.
+
+**Growth blocks added:**
+- Reserved-Engineering-Growth — /27 (32) — headroom to expand Engineering later
+- Spare-Future — /27 (32) — unassigned pool reserved for a brand-new future subnet 
+- Reserved-Admin-Growth — /28 (16)
+- Reserved-GuestWifi-Growth — /28 (16)
+- Reserved-Server-Growth — /28 (16)
+
+### Allocation order (largest → smallest, all 9 blocks)
+
+| Order | Block | Size | Network | Broadcast |
+|---|---|---|---|---|
+| 1 | Engineering /26 | 64 | .0 | .63 |
+| 2 | Admin /27 | 32 | .64 | .95 |
+| 3 | Guest Wi-Fi /27 | 32 | .96 | .127 |
+| 4 | Reserved-Engineering-Growth /27 | 32 | .128 | .159 |
+| 5 | Spare-Future /27 | 32 | .160 | .191 |
+| 6 | Server /28 | 16 | .192 | .207 |
+| 7 | Reserved-Admin-Growth /28 | 16 | .208 | .223 |
+| 8 | Reserved-GuestWifi-Growth /28 | 16 | .224 | .239 |
+| 9 | Reserved-Server-Growth /28 | 16 | .240 | .255 |
+
+**Sum check:** 64+32+32+32+32+16+16+16+16 = **256** — the entire /24 is accounted for, exactly.
+
+
+### Full addressing table
+
+| Subnet | CIDR | Mask | Network | First Host | Last Host | Broadcast | Gateway | Usable |
+|---|---|---|---|---|---|---|---|---|
+| Engineering | /26 | 255.255.255.192 | 10.20.30.0 | 10.20.30.1 | 10.20.30.62 | 10.20.30.63 | 10.20.30.1 | 62 |
+| Admin | /27 | 255.255.255.224 | 10.20.30.64 | 10.20.30.65 | 10.20.30.94 | 10.20.30.95 | 10.20.30.65 | 30 |
+| Guest Wi-Fi | /27 | 255.255.255.224 | 10.20.30.96 | 10.20.30.97 | 10.20.30.126 | 10.20.30.127 | 10.20.30.97 | 30 |
+| Reserved-Eng-Growth | /27 | 255.255.255.224 | 10.20.30.128 | 10.20.30.129 | 10.20.30.158 | 10.20.30.159 | — | 30 |
+| Spare-Future | /27 | 255.255.255.224 | 10.20.30.160 | 10.20.30.161 | 10.20.30.190 | 10.20.30.191 | — | 30 |
+| Server | /28 | 255.255.255.240 | 10.20.30.192 | 10.20.30.193 | 10.20.30.206 | 10.20.30.207 | 10.20.30.193 | 14 |
+| Reserved-Admin-Growth | /28 | 255.255.255.240 | 10.20.30.208 | 10.20.30.209 | 10.20.30.222 | 10.20.30.223 | — | 14 |
+| Reserved-Guest-Growth | /28 | 255.255.255.240 | 10.20.30.224 | 10.20.30.225 | 10.20.30.238 | 10.20.30.239 | — | 14 |
+| Reserved-Server-Growth | /28 | 255.255.255.240 | 10.20.30.240 | 10.20.30.241 | 10.20.30.254 | 10.20.30.255 | — | 14 |
 
 ---
+
 
 ## VLSM Visual Layout
 
@@ -666,6 +587,7 @@ NAT is essential because it enables **IPv4 conservation by allowing hundreds of 
 
 NAT also provides flexibility to reorganize internal addressing schemes without affecting internet connectivity, making it a standard practice in modern enterprise networks.
 
+---
 ---
 
 ## AUTHOR
